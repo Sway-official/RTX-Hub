@@ -2,128 +2,89 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RTXHub</title>
 <style>
-  body {
-    margin: 0;
-    font-family: monospace;
-    background: linear-gradient(135deg, #4b0082, #000080, #000);
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-  }
-  .hidden { display: none; }
-  .container { max-width: 600px; width: 100%; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 16px; }
-  h1, h2, h3 { margin: 0 0 12px 0; }
-  button { cursor: pointer; padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; margin-top: 8px; }
-  input { padding: 10px; width: 100%; margin-bottom: 12px; border-radius: 8px; border: 1px solid #ccc; }
-  .key-box { background: rgba(0,0,0,0.7); padding: 12px; border-radius: 8px; font-size: 1.2em; word-break: break-all; }
+body { background:#111; color:white; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; gap:15px; }
+button { padding:10px 20px; border:none; border-radius:8px; cursor:pointer; background:#1e90ff; color:white; font-weight:bold; }
+input { padding:10px; border-radius:8px; border:none; text-align:center; font-weight:bold; }
 </style>
 </head>
 <body>
 
-<div class="container" id="landing">
-  <h1>RTXHub</h1>
-  <p>Complete the captcha to get your 12-hour Roblox hub key.</p>
-  <div id="captchaDisplay" style="font-size: 2em; letter-spacing: 6px; margin-bottom: 12px;"></div>
-  <input type="text" id="captchaInput" placeholder="Enter captcha" maxlength="6">
-  <button id="verifyCaptchaBtn">Verify & Continue</button>
-  <p id="captchaError" style="color:red;"></p>
-  <button id="refreshCaptchaBtn" style="margin-top:8px;">Refresh Captcha</button>
-</div>
+<h1>RTXHub Key System</h1>
 
-<div class="container hidden" id="confirmation">
-  <h2>✅ Verification Complete!</h2>
-  <p>You can now generate your 12-hour Roblox key.</p>
-  <button id="generateKeyBtn">Generate Key</button>
-</div>
+<!-- Captcha -->
+<div id="captcha"></div>
+<input type="text" id="captchaInput" placeholder="Enter captcha" maxlength="6">
+<button id="verifyBtn">Verify & Continue</button>
+<p id="error" style="color:red"></p>
 
-<div class="container hidden" id="generatePage">
-  <h2>Your Access Key</h2>
-  <div class="key-box" id="keyDisplay"></div>
-  <button id="copyKeyBtn">Copy Key</button>
-  <p>Time Remaining: <span id="countdown"></span></p>
+<!-- Key section -->
+<div id="keySection" style="display:none;">
+  <input id="keyBox" readonly>
+  <button id="copyBtn">Copy Key</button>
+  <p>Time remaining: <span id="countdown"></span></p>
 </div>
 
 <script>
-  // Captcha generation
-  const captchaChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let captchaCode = '';
+const captchaChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+let captchaCode = '';
+let key = '';
+let expiry = 0;
 
-  function generateCaptcha() {
-    captchaCode = '';
-    for (let i = 0; i < 6; i++) {
-      captchaCode += captchaChars.charAt(Math.floor(Math.random() * captchaChars.length));
-    }
-    document.getElementById('captchaDisplay').textContent = captchaCode;
-    document.getElementById('captchaInput').value = '';
-    document.getElementById('captchaError').textContent = '';
+function generateCaptcha() {
+  captchaCode = '';
+  for(let i=0;i<6;i++) captchaCode += captchaChars.charAt(Math.floor(Math.random()*captchaChars.length));
+  document.getElementById('captcha').textContent = captchaCode;
+  document.getElementById('captchaInput').value = '';
+  document.getElementById('error').textContent = '';
+}
+generateCaptcha();
+
+document.getElementById('verifyBtn').onclick = function(){
+  if(document.getElementById('captchaInput').value.toUpperCase() === captchaCode){
+    document.getElementById('captcha').style.display='none';
+    document.getElementById('captchaInput').style.display='none';
+    this.style.display='none';
+    generateKey();
+  } else {
+    document.getElementById('error').textContent = "Incorrect captcha!";
+    generateCaptcha();
   }
+};
 
-  generateCaptcha();
-
-  document.getElementById('refreshCaptchaBtn').addEventListener('click', generateCaptcha);
-
-  document.getElementById('verifyCaptchaBtn').addEventListener('click', () => {
-    const input = document.getElementById('captchaInput').value.toUpperCase();
-    if (input === captchaCode) {
-      document.getElementById('landing').classList.add('hidden');
-      document.getElementById('confirmation').classList.remove('hidden');
-    } else {
-      document.getElementById('captchaError').textContent = 'Incorrect captcha. Try again.';
-      generateCaptcha();
-    }
-  });
-
-  // Key generation
-  const keyChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  function generateKey() {
-    let key = 'RTX-';
-    for (let i = 0; i < 16; i++) {
-      if (i > 0 && i % 4 === 0) key += '-';
-      key += keyChars.charAt(Math.floor(Math.random() * keyChars.length));
-    }
-    return key;
+function generateKey(){
+  key = 'RTX-';
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  for(let i=0;i<16;i++){
+    if(i>0 && i%4===0) key += '-';
+    key += chars.charAt(Math.floor(Math.random()*chars.length));
   }
+  expiry = Date.now() + 12*60*60*1000;
+  document.getElementById('keySection').style.display='block';
+  document.getElementById('keyBox').value = key;
+  startCountdown();
+}
 
-  let generatedKey = null;
-  let expiryTime = null;
-  let countdownInterval = null;
+document.getElementById('copyBtn').onclick = function(){
+  navigator.clipboard.writeText(key);
+  alert("Key copied!");
+};
 
-  document.getElementById('generateKeyBtn').addEventListener('click', () => {
-    generatedKey = generateKey();
-    expiryTime = Date.now() + 12*60*60*1000; // 12 hours
-    document.getElementById('confirmation').classList.add('hidden');
-    document.getElementById('generatePage').classList.remove('hidden');
-    document.getElementById('keyDisplay').textContent = generatedKey;
-
-    if (countdownInterval) clearInterval(countdownInterval);
-    countdownInterval = setInterval(updateCountdown, 1000);
-    updateCountdown();
-  });
-
-  function updateCountdown() {
-    const now = Date.now();
-    const diff = expiryTime - now;
-    if (diff <= 0) {
-      document.getElementById('countdown').textContent = 'EXPIRED';
-      clearInterval(countdownInterval);
+function startCountdown(){
+  const interval = setInterval(()=>{
+    let diff = expiry - Date.now();
+    if(diff <=0){
+      document.getElementById('countdown').textContent = "EXPIRED";
+      clearInterval(interval);
       return;
     }
-    const hours = Math.floor(diff / (1000*60*60));
-    const minutes = Math.floor((diff % (1000*60*60)) / (1000*60));
-    const seconds = Math.floor((diff % (1000*60)) / 1000);
-    document.getElementById('countdown').textContent = `${hours}h ${minutes}m ${seconds}s`;
-  }
-
-  // Copy key
-  document.getElementById('copyKeyBtn').addEventListener('click', () => {
-    navigator.clipboard.writeText(generatedKey);
-    alert('Key copied to clipboard!');
-  });
+    const h = Math.floor(diff/3600000);
+    const m = Math.floor((diff%3600000)/60000);
+    const s = Math.floor((diff%60000)/1000);
+    document.getElementById('countdown').textContent = `${h}h ${m}m ${s}s`;
+  },1000);
+}
 </script>
 
 </body>
